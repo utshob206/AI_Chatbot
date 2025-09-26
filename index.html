@@ -1,0 +1,815 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bedat UPS AI Chatbot</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .chatbot-container {
+            width: 100%;
+            max-width: 420px;
+            height: 650px;
+            background: #ffffff;
+            border-radius: 24px;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.15);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            animation: slideUp 0.6s ease-out;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px) scale(0.95);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        .chat-header {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            padding: 25px 20px;
+            text-align: center;
+            position: relative;
+        }
+
+        .chat-header h1 {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            background: #4ade80;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.7; transform: scale(1.1); }
+        }
+
+        .language-selector {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.25);
+            border: none;
+            border-radius: 20px;
+            color: white;
+            padding: 8px 12px;
+            font-size: 12px;
+            cursor: pointer;
+            backdrop-filter: blur(10px);
+        }
+
+        .language-selector option {
+            background: #4facfe;
+            color: white;
+        }
+
+        .chat-messages {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            scroll-behavior: smooth;
+        }
+
+        .chat-messages::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .chat-messages::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+
+        .chat-messages::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 10px;
+        }
+
+        .message {
+            display: flex;
+            gap: 12px;
+            max-width: 85%;
+            animation: messageSlide 0.4s ease-out;
+        }
+
+        @keyframes messageSlide {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .message.user {
+            align-self: flex-end;
+            flex-direction: row-reverse;
+        }
+
+        .message-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            color: white;
+            font-size: 14px;
+            flex-shrink: 0;
+        }
+
+        .bot-avatar {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .user-avatar {
+            background: linear-gradient(135deg, #ff6b6b 0%, #ff8e53 100%);
+        }
+
+        .message-content {
+            padding: 14px 18px;
+            border-radius: 20px;
+            word-wrap: break-word;
+            line-height: 1.5;
+            font-size: 14px;
+        }
+
+        .bot-message {
+            background: #f8fafc;
+            color: #374151;
+            border-bottom-left-radius: 8px;
+            border: 1px solid #e5e7eb;
+        }
+
+        .user-message {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            border-bottom-right-radius: 8px;
+        }
+
+        .bot-message a {
+            color: #3b82f6;
+            text-decoration: none;
+            font-weight: 500;
+            border-bottom: 1px solid #3b82f6;
+            transition: all 0.2s ease;
+        }
+
+        .bot-message a:hover {
+            color: #2563eb;
+            border-bottom-color: #2563eb;
+        }
+
+        .bot-message strong {
+            color: #1f2937;
+            font-weight: 600;
+        }
+
+        .typing-indicator {
+            display: none;
+            align-items: center;
+            gap: 8px;
+            padding: 20px;
+            font-style: italic;
+            color: #6b7280;
+            font-size: 14px;
+        }
+
+        .typing-dots {
+            display: flex;
+            gap: 4px;
+        }
+
+        .typing-dots span {
+            width: 6px;
+            height: 6px;
+            background: #6b7280;
+            border-radius: 50%;
+            animation: typingAnimation 1.4s infinite ease-in-out;
+        }
+
+        .typing-dots span:nth-child(1) { animation-delay: -0.32s; }
+        .typing-dots span:nth-child(2) { animation-delay: -0.16s; }
+
+        @keyframes typingAnimation {
+            0%, 80%, 100% {
+                transform: scale(0.8);
+                opacity: 0.5;
+            }
+            40% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        .chat-input-container {
+            padding: 20px;
+            background: white;
+            border-top: 1px solid #e5e7eb;
+        }
+
+        .chat-input {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            background: #f9fafb;
+            border: 2px solid #e5e7eb;
+            border-radius: 25px;
+            padding: 4px;
+            transition: all 0.2s ease;
+        }
+
+        .chat-input:focus-within {
+            border-color: #4facfe;
+            box-shadow: 0 0 0 3px rgba(79, 172, 254, 0.1);
+        }
+
+        .message-input {
+            flex: 1;
+            border: none;
+            outline: none;
+            background: transparent;
+            padding: 12px 16px;
+            font-size: 14px;
+            color: #374151;
+        }
+
+        .message-input::placeholder {
+            color: #9ca3af;
+        }
+
+        .send-button {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            border: none;
+            border-radius: 50%;
+            color: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+            flex-shrink: 0;
+        }
+
+        .send-button:hover:not(:disabled) {
+            transform: scale(1.05);
+            box-shadow: 0 4px 12px rgba(79, 172, 254, 0.4);
+        }
+
+        .send-button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .send-button:active {
+            transform: scale(0.95);
+        }
+
+        @media (max-width: 480px) {
+            body {
+                padding: 10px;
+            }
+            
+            .chatbot-container {
+                height: calc(100vh - 20px);
+                border-radius: 16px;
+            }
+            
+            .chat-header {
+                padding: 20px 15px;
+            }
+            
+            .chat-messages {
+                padding: 15px;
+            }
+            
+            .chat-input-container {
+                padding: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="chatbot-container">
+        <div class="chat-header">
+            <select class="language-selector" id="languageSelect">
+                <option value="en">English</option>
+                <option value="bn">বাংলা</option>
+            </select>
+            <h1>Bedat UPS AI Assistant</h1>
+            <div class="status-indicator">
+                <div class="status-dot"></div>
+                <span>Online</span>
+            </div>
+        </div>
+
+        <div class="chat-messages" id="chatMessages">
+            <div class="message">
+                <div class="message-avatar bot-avatar">AI</div>
+                <div class="message-content bot-message">
+                    Hello! I'm your AI assistant for Bedat UPS. I can help you with our digital marketing, cybersecurity, app development, and AI automation services. How can I assist you today?
+                </div>
+            </div>
+        </div>
+
+        <div class="typing-indicator" id="typingIndicator">
+            <div class="typing-dots">
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
+            <span>AI is typing...</span>
+        </div>
+
+        <div class="chat-input-container">
+            <div class="chat-input">
+                <input 
+                    type="text" 
+                    class="message-input" 
+                    id="messageInput" 
+                    placeholder="Type your message..."
+                    maxlength="500"
+                >
+                <button class="send-button" id="sendButton" type="button">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="22" y1="2" x2="11" y2="13"></line>
+                        <polygon points="22,2 15,22 11,13 2,9 22,2"></polygon>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ============ CONFIGURATION ============
+        const CONFIG = {
+            SERP_API_KEY: 'cddfbb4270c0fc323cfe11701740511630d3219a5968adbbcf1dffde5f4acdb9',
+            GEMINI_API_KEY: 'AIzaSyDNsY7ua32ygxiMyTzvzJ8Q_Okl-vBlhmA',
+            APPOINTMENT_LINK: 'https://cal.com/bedat-ups/15min'
+        };
+
+        // ============ STATE MANAGEMENT ============
+        let chatHistory = [];
+        let currentLanguage = 'en';
+        let isProcessing = false;
+
+        // ============ DOM ELEMENTS ============
+        const chatMessages = document.getElementById('chatMessages');
+        const messageInput = document.getElementById('messageInput');
+        const sendButton = document.getElementById('sendButton');
+        const typingIndicator = document.getElementById('typingIndicator');
+        const languageSelect = document.getElementById('languageSelect');
+
+        // ============ INITIALIZATION ============
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeChatbot();
+        });
+
+        function initializeChatbot() {
+            console.log('🤖 Chatbot initializing...');
+            
+            // Setup event listeners
+            messageInput.addEventListener('keypress', handleKeyPress);
+            sendButton.addEventListener('click', sendMessage);
+            languageSelect.addEventListener('change', handleLanguageChange);
+            
+            // Add welcome message to history
+            chatHistory.push({
+                role: 'assistant',
+                content: 'Hello! I\'m your AI assistant for Bedat UPS...',
+                timestamp: new Date()
+            });
+
+            console.log('✅ Chatbot initialized successfully');
+        }
+
+        // ============ EVENT HANDLERS ============
+        function handleKeyPress(event) {
+            if (event.key === 'Enter' && !event.shiftKey) {
+                event.preventDefault();
+                sendMessage();
+            }
+        }
+
+        function handleLanguageChange(event) {
+            currentLanguage = event.target.value;
+            const message = currentLanguage === 'bn' 
+                ? 'ভাষা বাংলায় পরিবর্তিত হয়েছে' 
+                : 'Language changed to English';
+            addBotMessage(message);
+        }
+
+        // ============ MESSAGE HANDLING ============
+        async function sendMessage() {
+            const message = messageInput.value.trim();
+            if (!message || isProcessing) return;
+
+            addUserMessage(message);
+            messageInput.value = '';
+            
+            isProcessing = true;
+            showTyping();
+
+            try {
+                const response = await processMessage(message);
+                hideTyping();
+                addBotMessage(response);
+            } catch (error) {
+                console.error('Error processing message:', error);
+                hideTyping();
+                addBotMessage(getErrorMessage());
+            } finally {
+                isProcessing = false;
+            }
+        }
+
+        function addUserMessage(message) {
+            const messageDiv = createMessageElement('user', message);
+            chatMessages.appendChild(messageDiv);
+            scrollToBottom();
+            
+            chatHistory.push({
+                role: 'user',
+                content: message,
+                timestamp: new Date()
+            });
+        }
+
+        function addBotMessage(message) {
+            const messageDiv = createMessageElement('bot', message);
+            chatMessages.appendChild(messageDiv);
+            scrollToBottom();
+            
+            chatHistory.push({
+                role: 'assistant',
+                content: message,
+                timestamp: new Date()
+            });
+        }
+
+        function createMessageElement(type, content) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${type === 'user' ? 'user' : ''}`;
+            
+            const avatar = document.createElement('div');
+            avatar.className = `message-avatar ${type === 'user' ? 'user-avatar' : 'bot-avatar'}`;
+            avatar.textContent = type === 'user' ? 'U' : 'AI';
+            
+            const messageContent = document.createElement('div');
+            messageContent.className = `message-content ${type === 'user' ? 'user-message' : 'bot-message'}`;
+            messageContent.innerHTML = type === 'bot' ? formatBotMessage(content) : escapeHtml(content);
+            
+            messageDiv.appendChild(avatar);
+            messageDiv.appendChild(messageContent);
+            
+            return messageDiv;
+        }
+
+        function formatBotMessage(text) {
+            let formatted = escapeHtml(text);
+            
+            // Convert URLs to clickable links
+            formatted = formatted.replace(
+                /(https?:\/\/[^\s]+)/g, 
+                '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>'
+            );
+            
+            // Convert **bold** text
+            formatted = formatted.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+            
+            // Convert line breaks
+            formatted = formatted.replace(/\n/g, '<br>');
+            
+            return formatted;
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function showTyping() {
+            typingIndicator.style.display = 'flex';
+            scrollToBottom();
+        }
+
+        function hideTyping() {
+            typingIndicator.style.display = 'none';
+        }
+
+        function scrollToBottom() {
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        // ============ MESSAGE PROCESSING ============
+        async function processMessage(message) {
+            const lowerMessage = message.toLowerCase();
+
+            // Check message types in order of priority
+            if (isGreeting(lowerMessage)) {
+                return getGreetingResponse();
+            }
+
+            if (isPersonalQuestion(lowerMessage)) {
+                return getPersonalResponse();
+            }
+
+            if (isAppointmentRequest(lowerMessage)) {
+                return getAppointmentResponse();
+            }
+
+            if (isServiceInquiry(lowerMessage)) {
+                return getServiceResponse();
+            }
+
+            // Try AI response
+            const aiResponse = await getGeminiResponse(message);
+            if (aiResponse) return aiResponse;
+
+            // Try web search
+            const webResponse = await searchWeb(message);
+            if (webResponse) return webResponse;
+
+            // Fallback
+            return getFallbackResponse();
+        }
+
+        // ============ MESSAGE TYPE DETECTION ============
+        function isGreeting(message) {
+            const greetings = [
+                'hi', 'hello', 'hey', 'good morning', 'good afternoon', 'good evening',
+                'assalam', 'সালাম', 'হাই', 'হ্যালো', 'নমস্কার'
+            ];
+            return greetings.some(greeting => message.includes(greeting));
+        }
+
+        function isPersonalQuestion(message) {
+            const personalQuestions = [
+                'how are you', 'how do you do', 'how you doing', 'what\'s up', 'whats up',
+                'how is your day', 'how was your day', 'are you okay', 'are you fine',
+                'how r u', 'how ru', 'sup', 'what up', 'কেমন আছেন', 'কেমন আছ', 'কি খবর'
+            ];
+            return personalQuestions.some(question => message.includes(question));
+        }
+
+        function isAppointmentRequest(message) {
+            const keywords = [
+                'appointment', 'book', 'meeting', 'call', 'talk', 'consultation', 'schedule',
+                'অ্যাপয়েন্টমেন্ট', 'মিটিং', 'কথা বলতে', 'সময় নিতে'
+            ];
+            return keywords.some(keyword => message.includes(keyword));
+        }
+
+        function isServiceInquiry(message) {
+            const keywords = [
+                'service', 'what do you do', 'offer', 'provide', 'help', 'about bedat',
+                'সেবা', 'কি করেন', 'সাহায্য'
+            ];
+            return keywords.some(keyword => message.includes(keyword));
+        }
+
+        // ============ RESPONSE GENERATORS ============
+        function getGreetingResponse() {
+            if (currentLanguage === 'bn') {
+                return 'হ্যালো! বেদাত ইউপিএস-এ আপনাকে স্বাগতম। আমি আপনার AI সহায়ক এবং আমাদের ডিজিটাল মার্কেটিং, সাইবার সিকিউরিটি, অ্যাপ ডেভেলপমেন্ট এবং AI সেবা নিয়ে সাহায্য করতে পারি। আজ আমি আপনাকে কীভাবে সাহায্য করতে পারি?';
+            }
+            return 'Hello! Welcome to Bedat UPS. I\'m your AI assistant ready to help you with our digital marketing, cybersecurity, app development, and AI automation services. How can I assist you today?';
+        }
+
+        function getPersonalResponse() {
+            if (currentLanguage === 'bn') {
+                const responses = [
+                    'আমি ভালো আছি, ধন্যবাদ! আপনি কেমন আছেন? আমি আপনাকে বেদাত ইউপিএস এর সেবা নিয়ে সাহায্য করতে পারি।',
+                    'আমি চমৎকার! আপনার কেমন লাগছে আজকের দিনটি? আমাদের ডিজিটাল সেবা নিয়ে কিছু জানতে চান?',
+                    'আমি খুব ভালো, আপনি কেমন? আমি এখানে আছি আপনাকে সাহায্য করার জন্য!'
+                ];
+                return responses[Math.floor(Math.random() * responses.length)];
+            }
+            
+            const responses = [
+                "I'm doing great, thank you for asking! How are you doing today? I'm here to help you with Bedat UPS services.",
+                "I'm fantastic! How about you? Are you having a good day? I'd love to help you with anything you need.",
+                "I'm doing wonderful, thanks! How are you? I'm here and ready to assist you with our digital solutions.",
+                "I'm excellent, thank you! How's your day going? Feel free to ask me anything about our services."
+            ];
+            
+            return responses[Math.floor(Math.random() * responses.length)];
+        }
+
+        function getAppointmentResponse() {
+            if (currentLanguage === 'bn') {
+                return `🎯 চমৎকার! আমাদের এক্সপার্ট টিমের সাথে সরাসরি কথা বলুন।
+
+📞 **15 মিনিট ভিডিও কনসালটেশন বুক করুন:**
+${CONFIG.APPOINTMENT_LINK}
+
+✅ **আপনি পাবেন:**
+• সরাসরি আমাদের এক্সপার্টদের সাথে আলোচনা
+• আপনার প্রয়োজন অনুযায়ী কাস্টমাইজড সমাধান
+• সব ধরনের ডিজিটাল সেবা নিয়ে বিস্তারিত তথ্য
+
+আজই বুক করুন! 🚀`;
+            }
+            
+            return `🎯 Excellent! Let's connect you with our expert team.
+
+📞 **Book Your 15-Minute Video Consultation:**
+${CONFIG.APPOINTMENT_LINK}
+
+✅ **What You'll Get:**
+• Direct consultation with our experts
+• Customized solutions for your needs
+• Detailed discussion about our services
+• Project cost & timeline estimates
+
+Book now and transform your business! 🚀`;
+        }
+
+        function getServiceResponse() {
+            if (currentLanguage === 'bn') {
+                return `🏢 **বেদাত ইউপিএস - সম্পূর্ণ ডিজিটাল সমাধান**
+
+**আমাদের মূল সেবাসমূহ:**
+
+🎯 **ডিজিটাল মার্কেটিং ও ব্র্যান্ডিং**
+• সোশ্যাল মিডিয়া মার্কেটিং
+• SEO ও SEM
+• পেইড অ্যাডস (Meta, Google, TikTok)
+
+🔒 **সাইবার সিকিউরিটি ও পেন-টেস্টিং**  
+• ভালনারেবিলিটি অ্যাসেসমেন্ট
+• নেটওয়ার্ক পেনিট্রেশন টেস্টিং
+
+🤖 **AI ও অটোমেশন টুলকিট**
+• AI কনটেন্ট ক্রিয়েশন  
+• মার্কেটিং অটোমেশন
+
+💻 **অ্যাপ ও ওয়েব ডেভেলপমেন্ট**
+• ফুল-স্ট্যাক ওয়েব ডেভেলপমেন্ট
+• মোবাইল অ্যাপ ডেভেলপমেন্ট
+
+🌐 **নেটওয়ার্কিং ও IT সমাধান**
+
+**আরও জানতে চান?** ${CONFIG.APPOINTMENT_LINK}`;
+            }
+
+            return `🏢 **Bedat UPS - Complete Digital Solutions**
+
+**Our Core Services:**
+
+🎯 **Digital Marketing & Branding**
+• Social Media Marketing
+• SEO & SEM optimization  
+• Paid Ads (Meta, Google, TikTok)
+• Brand Strategy & Creative Design
+
+🔒 **Cybersecurity & Pen-Testing**
+• Vulnerability Assessment
+• Network Penetration Testing
+• Web & App Security Audit
+
+🤖 **AI & Automation Toolkit**  
+• AI Content Creation
+• Marketing Automation
+• Chatbot Integration
+
+💻 **App & Web Development**
+• Full-stack Web Development
+• Android & iOS App Development
+• E-commerce Platforms
+
+🌐 **Networking & IT Solutions**
+• Server & Cloud Setup
+• Corporate Networking
+
+**Ready to get started?** ${CONFIG.APPOINTMENT_LINK}`;
+        }
+
+        function getFallbackResponse() {
+            if (currentLanguage === 'bn') {
+                return `আমি বেদাত ইউপিএস এর সেবা নিয়ে সাহায্য করতে পারি। বিস্তারিত জানতে কনসালটেশন বুক করুন: ${CONFIG.APPOINTMENT_LINK}`;
+            }
+            return `I'm here to help with Bedat UPS services. For detailed assistance, book a consultation: ${CONFIG.APPOINTMENT_LINK}`;
+        }
+
+        function getErrorMessage() {
+            if (currentLanguage === 'bn') {
+                return 'দুঃখিত, একটি সমস্যা হয়েছে। অনুগ্রহ করে আবার চেষ্টা করুন।';
+            }
+            return 'Sorry, I encountered an error. Please try again.';
+        }
+
+        // ============ AI INTEGRATION ============
+        async function getGeminiResponse(message) {
+            if (!CONFIG.GEMINI_API_KEY) return null;
+
+            try {
+                const context = getConversationContext();
+                const prompt = `You are an AI assistant for Bedat UPS, a digital agency in Bangladesh.
+
+User message: ${message}
+Language: ${currentLanguage === 'bn' ? 'Bengali' : 'English'}
+Context: ${context}
+
+Respond professionally about Bedat UPS services. Keep it concise (2-3 sentences). Include appointment link: ${CONFIG.APPOINTMENT_LINK}`;
+
+                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${CONFIG.GEMINI_API_KEY}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents: [{ parts: [{ text: prompt }] }],
+                        generationConfig: { 
+                            temperature: 0.7, 
+                            maxOutputTokens: 200 
+                        }
+                    })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    return data.candidates?.[0]?.content?.parts?.[0]?.text || null;
+                }
+            } catch (error) {
+                console.error('Gemini API error:', error);
+            }
+            
+            return null;
+        }
+
+        async function searchWeb(query) {
+            if (!CONFIG.SERP_API_KEY) return null;
+
+            try {
+                const response = await fetch(`https://serpapi.com/search.json?q=${encodeURIComponent(query)}&api_key=${CONFIG.SERP_API_KEY}&num=2`);
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.organic_results?.length > 0) {
+                        const result = data.organic_results[0];
+                        return `Based on web search: ${result.snippet || result.title}\n\nFor Bedat UPS specific help: ${CONFIG.APPOINTMENT_LINK}`;
+                    }
+                }
+            } catch (error) {
+                console.error('Web search error:', error);
+            }
+            
+            return null;
+        }
+
+        function getConversationContext() {
+            if (chatHistory.length <= 1) return "New conversation";
+            
+            const recent = chatHistory.slice(-3);
+            return recent.map(msg => `${msg.role}: ${msg.content.substring(0, 50)}`).join(', ');
+        }
+
+        // ============ UTILITY FUNCTIONS ============
+        console.log('🚀 Bedat UPS Chatbot loaded successfully');
+    </script>
+</body>
+</html>
